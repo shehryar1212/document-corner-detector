@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Document Boundary Detection — Demo</title>
+<style>
+  :root {
+    --paper: #f5f6f2;
+    --paper-raised: #ffffff;
+    --ink: #1c2027;
+    --ink-soft: #5b6472;
+    --ink-faint: #8b93a0;
+    --accent: #a8621e;
+    --accent-soft: #f1e3d1;
+    --line: #dde0d9;
+    --ok: #2f7d4f;
+    --err: #b23a3a;
+    --shadow: 0 1px 2px rgba(28,32,39,0.06), 0 8px 24px rgba(28,32,39,0.06);
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    margin: 0;
+    padding: 0 20px;
+    line-height: 1.55;
+  }
+  .page { max-width: 760px; margin: 0 auto; padding: 56px 0 80px; }
+  h1 {
+    font-family: Charter, "Iowan Old Style", Georgia, "Times New Roman", serif;
+    font-size: clamp(26px, 4vw, 34px);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 10px;
+  }
+  .eyebrow {
+    font-family: "SF Mono", "Cascadia Code", Consolas, "Roboto Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    margin: 0 0 16px;
+  }
+  .lede { color: var(--ink-soft); font-size: 16.5px; max-width: 58ch; margin: 0 0 40px; }
+
+  .dropzone {
+    background: var(--paper-raised);
+    border: 2px dashed var(--line);
+    border-radius: 10px;
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .dropzone:hover, .dropzone.drag { border-color: var(--accent); background: var(--accent-soft); }
+  .dropzone p { margin: 0; color: var(--ink-soft); }
+  .dropzone .big { color: var(--ink); font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+  .dropzone input { display: none; }
+  .dropzone .hint { font-size: 13px; color: var(--ink-faint); margin-top: 8px; }
+
+  .status {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    margin-top: 24px;
+    color: var(--ink-soft);
+    font-size: 14.5px;
+  }
+  .status.show { display: flex; }
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--line);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2s; } }
+
+  .error {
+    display: none;
+    margin-top: 24px;
+    padding: 16px 18px;
+    background: #fff;
+    border: 1px solid var(--err);
+    border-left: 4px solid var(--err);
+    color: var(--ink);
+    font-size: 14.5px;
+    border-radius: 4px;
+  }
+  .error.show { display: block; }
+
+  .results { display: none; margin-top: 40px; }
+  .results.show { display: block; }
+
+  .badge-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  .badge {
+    font-family: "SF Mono", "Cascadia Code", Consolas, "Roboto Mono", monospace;
+    font-size: 12.5px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .badge.method { background: var(--paper); border: 1px solid var(--line); color: var(--ink-soft); }
+
+  .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 620px) { .panels { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .panel h3 {
+    font-size: 13.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ink-soft);
+    margin: 0;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .panel img { display: block; width: 100%; height: auto; }
+
+  .coords {
+    margin-top: 24px;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 18px 20px;
+  }
+  .coords h3 {
+    font-size: 13.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ink-soft);
+    margin: 0 0 12px;
+  }
+  .coord-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    font-family: "SF Mono", "Cascadia Code", Consolas, "Roboto Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 13.5px;
+  }
+  .coord-grid .label { color: var(--ink-faint); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
+
+  .reset-link {
+    display: inline-block;
+    margin-top: 24px;
+    font-size: 14px;
+    color: var(--accent);
+    cursor: pointer;
+    text-decoration: underline;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <p class="eyebrow">Live demo</p>
+  <h1>Upload a document photo</h1>
+  <p class="lede">Drop in a photo of a paper document and this returns the four detected corner coordinates, a visualization of the boundary, and the perspective-corrected crop &mdash; usually in a few seconds.</p>
+
+  <label class="dropzone" id="dropzone" for="fileInput">
+    <p class="big">Click to choose a photo, or drag one here</p>
+    <p>JPG or PNG, any size</p>
+    <p class="hint">Nothing is stored &mdash; the photo is processed and discarded.</p>
+    <input type="file" id="fileInput" accept="image/*">
+  </label>
+
+  <div class="status" id="status">
+    <span class="spinner"></span>
+    <span>Detecting boundary&hellip;</span>
+  </div>
+
+  <div class="error" id="error"></div>
+
+  <div class="results" id="results">
+    <div class="badge-row">
+      <span class="badge" id="confBadge"></span>
+      <span class="badge method" id="methodBadge"></span>
+    </div>
+    <div class="panels">
+      <div class="panel">
+        <h3>Detected boundary</h3>
+        <img id="visImg" alt="Detected document boundary overlaid on the original photo">
+      </div>
+      <div class="panel">
+        <h3>Corrected &amp; cropped</h3>
+        <img id="warpImg" alt="Perspective-corrected, cropped document">
+      </div>
+    </div>
+    <div class="coords">
+      <h3>Corner coordinates</h3>
+      <div class="coord-grid" id="coordGrid"></div>
+    </div>
+    <button class="reset-link" id="resetBtn" type="button">Try another photo</button>
+  </div>
+</div>
+
+<script>
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const statusEl = document.getElementById('status');
+  const errorEl = document.getElementById('error');
+  const resultsEl = document.getElementById('results');
+  const resetBtn = document.getElementById('resetBtn');
+
+  ['dragenter', 'dragover'].forEach(evt =>
+    dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add('drag'); })
+  );
+  ['dragleave', 'drop'].forEach(evt =>
+    dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.remove('drag'); })
+  );
+  dropzone.addEventListener('drop', e => {
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) handleFile(fileInput.files[0]);
+  });
+  resetBtn.addEventListener('click', () => {
+    resultsEl.classList.remove('show');
+    errorEl.classList.remove('show');
+    fileInput.value = '';
+  });
+
+  async function handleFile(file) {
+    errorEl.classList.remove('show');
+    resultsEl.classList.remove('show');
+    statusEl.classList.add('show');
+
+    const form = new FormData();
+    form.append('file', file);
+
+    try {
+      const res = await fetch('/analyze', { method: 'POST', body: form });
+      const data = await res.json();
+      statusEl.classList.remove('show');
+
+      if (!res.ok) {
+        errorEl.textContent = data.detail || 'Could not detect a document boundary in that photo.';
+        errorEl.classList.add('show');
+        return;
+      }
+
+      document.getElementById('visImg').src = 'data:image/jpeg;base64,' + data.visualization_jpeg_base64;
+      document.getElementById('warpImg').src = 'data:image/jpeg;base64,' + data.corrected_jpeg_base64;
+      document.getElementById('confBadge').textContent = 'Confidence ' + Math.round(data.confidence * 100) + '%';
+      document.getElementById('methodBadge').textContent = 'Method: ' + data.method;
+
+      const grid = document.getElementById('coordGrid');
+      grid.innerHTML = '';
+      const labels = ['Top left', 'Top right', 'Bottom right', 'Bottom left'];
+      const keys = ['top_left', 'top_right', 'bottom_right', 'bottom_left'];
+      keys.forEach((k, i) => {
+        const [x, y] = data.corners[k];
+        const div = document.createElement('div');
+        div.innerHTML = '<div class="label">' + labels[i] + '</div>' + Math.round(x) + ', ' + Math.round(y);
+        grid.appendChild(div);
+      });
+
+      resultsEl.classList.add('show');
+    } catch (err) {
+      statusEl.classList.remove('show');
+      errorEl.textContent = 'Something went wrong reaching the server. Please try again.';
+      errorEl.classList.add('show');
+    }
+  }
+</script>
+</body>
+</html>

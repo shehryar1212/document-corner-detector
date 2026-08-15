@@ -1,0 +1,3 @@
+image_path,width,height,tl_x,tl_y,tr_x,tr_y,br_x,br_y,bl_x,bl_y,source
+caste_certificate.png,1200,1600,41.5,58.0,1167.7,58.0,1195.4,1518.8,85.8,1542.0,adobe_scan_screenshot
+marks_statement.png,876,1600,93.5,45.4,854.7,32.4,832.5,1336.1,91.7,1356.5,adobe_scan_screenshot

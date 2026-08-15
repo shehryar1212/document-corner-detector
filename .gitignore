@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Model weights — fetched via download_weights.py, not committed (91MB)
+hed_model/
+hu_pagescan_model/
+
+# Generated test artifacts
+tests/sample_images/
+tests/client_samples/_debug/

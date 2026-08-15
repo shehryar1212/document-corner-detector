@@ -1,0 +1,9 @@
+venv/
+tests/
+demo_report/
+hed_model/
+hu_pagescan_model/
+.git/
+__pycache__/
+*.pyc
+.pytest_cache/
